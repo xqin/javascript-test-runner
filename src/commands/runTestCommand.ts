@@ -20,10 +20,21 @@ async function runTest (testName, rootPath, fileName) {
     const additionalArgs = workspace.getConfiguration("javascript-test-runner").get("additionalArgs")
     const term = _getNewTerminal()
 
-    const commandLine = testRunner === TestRunner.jest
-        ? `${rootPath}/node_modules/.bin/jest ${fileName} --testNamePattern="${testName}" ${additionalArgs}`
-        : `${rootPath}/node_modules/.bin/mocha ${fileName} --grep="${testName}" ${additionalArgs}`
+    const isJest = testRunner === TestRunner.jest
 
+    // escape backlash for bash
+    testName = testName.replace(/\\/g, "\\\\")
+
+    // escape single quote for bash
+    testName = testName.replace(/'/g, "'\\''")
+
+    let commandLine = `${rootPath}/node_modules/.bin/jest '${fileName}' --testNamePattern='${testName}' ${additionalArgs}`
+
+    if (isJest === false) {
+        // escape regexp string for `mocha --grep` arguments
+        testName = testName.replace(/[.*+?^${}()|[\]]/g, '\\$&')
+        commandLine = `${rootPath}/node_modules/.bin/mocha '${fileName}' --grep='${testName}' ${additionalArgs}`
+    }
 
     term.sendText(commandLine, true)
     term.show(true)
